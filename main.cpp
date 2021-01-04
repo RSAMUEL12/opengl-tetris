@@ -4,11 +4,17 @@
 #include <GL/glut.h> // on linux
 #endif
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <iostream>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
 
 #define ROWS 22
 #define VISABLE_ROWS 20
@@ -16,6 +22,7 @@
 
 const char shapes[] = {'I', 'J', 'L', 'O', 'S', 'Z', 'T'};
 int boardLocations[ROWS][COLUMNS] = {0};
+float elapsedTime = 0.0f;
 
 const float LEFT = 0;
 const float RIGHT = 1000;
@@ -71,7 +78,7 @@ const bool tetroShapes[28][4] =
 const float blockHeight = (tt_TOP - tt_BOTTOM) / VISABLE_ROWS;
 const float blockWidth = (tt_RIGHT - tt_LEFT) / COLUMNS;
 
-bool newBlock = false;
+bool newBlock = true;
 
 // Block class is the fundamental shape for making the Tetronimos for the Tetris game
 class Block
@@ -93,10 +100,7 @@ public:
     {
         Block::row = row;
         Block::column = column;
-        left = tt_LEFT + (blockWidth * (column - 1));
-        right = tt_LEFT + (blockWidth * (column));
-        bottom = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - row));
-        top = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - (row + 1)));
+        resetCoords();
     }
     void getCoords()
     {
@@ -105,6 +109,27 @@ public:
         printf("RIGHT: %f \n", right);
         printf("BOTTOM: %f \n", bottom);
         printf("TOP: %f \n", top);
+    }
+    int getRow()
+    {
+        return Block::row;
+    }
+    int getColumn()
+    {
+        return Block::column;
+    }
+    void setRowColumn(int row, int column)
+    {
+        Block::row = row;
+        Block::column = column;
+        resetCoords();
+    }
+    void resetCoords()
+    {
+        left = tt_LEFT + (blockWidth * (column - 1));
+        right = tt_LEFT + (blockWidth * (column));
+        bottom = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - row));
+        top = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - (row + 1)));
     }
     void display()
     {
@@ -128,7 +153,7 @@ class Tetronimo
 {
 private:
     int shape[4][4];
-    Block blocks; //stores pointers to its corresponding blocks, each block has their own coordinates
+    Block blocks[4]; //stores pointers to its corresponding blocks, each block has their own coordinates
     int type;
 
 public:
@@ -154,6 +179,86 @@ public:
                 std::cout << " " << shape[i][j] << " ";
             }
             std::cout << "\n";
+        }
+    }
+    void spawnShape()
+    {
+        int row = -1;
+        int column = 4;
+        int index = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (shape[i][j] == 1)
+                {
+                    Block block(row + i, column + j);
+                    blocks[index] = block;
+                    index++;
+                }
+            }
+        }
+    }
+
+    bool checkLeft()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            int column = blocks[i].getColumn();
+            if (column >= 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool checkDown()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            int row = blocks[i].getRow();
+            if (row >= 19)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isBottom()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            int row = blocks[i].getRow();
+            if (row == 19)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void moveDownwards()
+    {
+        if (checkDown() == true and elapsedTime > 0)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Check if a boundary is hit
+                blocks[i].setRowColumn(blocks[i].getRow() + 1, blocks[i].getColumn());
+                blocks[i].display();
+            }
+        }
+        elapsedTime--;
+    }
+
+    // Display function calls the Block display function to show the tetromino
+    void display()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            blocks[i].display();
         }
     }
 };
@@ -220,16 +325,58 @@ void init()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+Tetronimo allTetros[10];
+int totalTetros = 0;
+void playGame()
+{
+    while (newBlock)
+    {
+        printf("New Block made...\n");
+        Tetronimo tetro;
+        tetro.create();
+        tetro.spawnShape();
+        allTetros[totalTetros] = tetro;
+        totalTetros++;
+        newBlock = false;
+    }
+    for (int i = 0; i < totalTetros; i++)
+    {
+        if (i == totalTetros - 1)
+        {
+            allTetros[i].moveDownwards();
+            newBlock = allTetros[i].isBottom();
+            printf("%x\n", newBlock);
+        }
+        allTetros[i].display();
+    }
+}
+
 // redraw callback
 void display()
 {
+    //printf("Calling Display");
     glClear(GL_COLOR_BUFFER_BIT);
-    //drawGrid();
     glColor3f(1, 1, 1);
     drawGrid();
     drawBlock();
-    createTetromino();
+    playGame();
     glutSwapBuffers(); // swap the backbuffer with the front
+    //printf("Display Done...\n");
+}
+
+void idle()
+{
+    //printf("Calling Idle \n");
+    usleep(1000000);
+    elapsedTime++;
+    glutPostRedisplay();
+}
+
+void timer_func(int n)
+{
+    printf("Timer called\n");
+    glutPostRedisplay();
+    glutTimerFunc(5000, timer_func, 0);
 }
 
 int main(int argc, char *argv[])
@@ -241,6 +388,8 @@ int main(int argc, char *argv[])
     glutCreateWindow("Tetris");
     init();
     glutDisplayFunc(display);
+    glutIdleFunc(idle);
+    //glutTimerFunc(5000, timer_func, 0);
 
     // handlers for keyboard input
     //glutKeyboardFunc(keyboard);
