@@ -42,6 +42,15 @@ struct Coordinate
     int row;
     int column;
 };
+
+struct Colour
+{
+    float r;
+    float g;
+    float b;
+};
+
+Colour colours[7] = {};
 // Tetronmino shapes that will be chosen at random
 const bool tetroShapes[28][4] =
     {
@@ -85,6 +94,7 @@ const float blockHeight = (tt_TOP - tt_BOTTOM) / VISABLE_ROWS;
 const float blockWidth = (tt_RIGHT - tt_LEFT) / COLUMNS;
 
 bool newBlock = true;
+bool blockCreated = false;
 
 // Block class is the fundamental shape for making the Tetronimos for the Tetris game
 class Block
@@ -131,7 +141,7 @@ public:
         boardLocations[Block::row][Block::column] = 0;
         Block::row = row;
         Block::column = column;
-        boardLocations[Block::row][Block::column] = type;
+        boardLocations[Block::row][Block::column] = 1;
         resetCoords();
     }
     void resetCoords()
@@ -148,7 +158,31 @@ public:
             return;
         }
         //printf("%d, %d", row, column);
-        glColor3f(1, 1, 0);
+        // Selecting the colour based on the shape type
+        switch (type)
+        {
+        case (0):
+            glColor3f(1, 1, 0);
+            break;
+        case (1):
+            glColor3f(0.2, 1, 1);
+            break;
+        case (2):
+            glColor3f(0.17, 1, 0);
+            break;
+        case (3):
+            glColor3f(1, 0, 0);
+            break;
+        case (4):
+            glColor3f(1, 0.67, 0);
+            break;
+        case (5):
+            glColor3f(0, 0, 1);
+            break;
+        case (6):
+            glColor3f(0.7, 0.1, 1);
+            break;
+        }
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
         glVertex2f(left, top);
@@ -170,12 +204,13 @@ private:
     int shape[4][4];
     Block blocks[4]; //stores pointers to its corresponding blocks, each block has their own coordinates
     int type;
+    int size;
 
 public:
     Tetronimo() {}
     void create()
     {
-        type = rand() % 7;
+        type = (rand() % 7);
         for (int y = 0; y < 4; y++)
         {
             for (int x = 0; x < 4; x++)
@@ -216,7 +251,7 @@ public:
 
     bool checkLeft()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int column = blocks[i].getColumn();
             if (column <= 0)
@@ -229,7 +264,7 @@ public:
 
     bool checkRight()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int column = blocks[i].getColumn();
             if (column >= 9)
@@ -242,7 +277,7 @@ public:
 
     bool checkDown()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int row = blocks[i].getRow();
             if (row >= 21)
@@ -255,7 +290,7 @@ public:
 
     bool isBottom()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int row = blocks[i].getRow();
             if (row == 21)
@@ -270,23 +305,22 @@ public:
     void setLanded()
     {
         //printf("Landed...\n");
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
-            printf("Type: %d", type);
-            landedBlockLocations[row][column] = type;
+            landedBlockLocations[row][column] = 1;
         }
     }
 
     // Check if there is a collision with another block from another tetronimo
     bool isCollision()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
-            if (row != 21 and column != 9)
+            if ((row != 21 and column != 9))
             {
                 if (landedBlockLocations[row + 1][column] != 0)
                 {
@@ -304,7 +338,7 @@ public:
     {
         if (checkLeft() == true)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < size; i++)
             {
                 // Check if a boundary is hit
                 blocks[i].setRowColumn(blocks[i].getRow(), blocks[i].getColumn() - 1);
@@ -317,7 +351,7 @@ public:
     {
         if (checkRight() == true)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < size; i++)
             {
                 // Check if a boundary is hit
                 blocks[i].setRowColumn(blocks[i].getRow(), blocks[i].getColumn() + 1);
@@ -330,7 +364,7 @@ public:
     {
         if (checkDown() == true and elapsedTime > 0 and isCollision() == false)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < size; i++)
             {
                 // Check if a boundary is hit
                 int row = blocks[i].getRow();
@@ -350,7 +384,7 @@ public:
     {
         if (checkDown() == true and isCollision() == false)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < size; i++)
             {
                 // Check if a boundary is hit
                 int row = blocks[i].getRow();
@@ -369,7 +403,7 @@ public:
     // Display function calls the Block display function to show the tetromino
     void display()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < size; i++)
         {
             blocks[i].display();
         }
@@ -419,24 +453,9 @@ void drawGrid()
     }
 }
 
-void drawBlock()
+// Clear any rows that are completely filled
+void clearLines()
 {
-    int row = 5;
-    int column = 10;
-    if (boardLocations[row][column] == 0)
-    {
-        Block block(row, column, 1);
-        blockLocations[row][column] = block;
-        boardLocations[row][column] = 1;
-    }
-    blockLocations[row][column].display();
-}
-
-void createTetromino()
-{
-    Tetronimo tetro;
-    tetro.create();
-    tetro.showShape();
 }
 
 void init()
@@ -477,6 +496,7 @@ void playGame()
             };
         }
         allTetros[i].display();
+        blockCreated = true;
     }
 }
 
@@ -509,24 +529,27 @@ void timer_func(int n)
 
 void special(int key, int, int)
 {
-    // handle special keys
-    switch (key)
+    if (blockCreated)
     {
-    case GLUT_KEY_LEFT:
-        allTetros[totalTetros - 1].moveLeft();
-        allTetros[totalTetros - 1].display();
-        break;
-    case GLUT_KEY_RIGHT:
-        allTetros[totalTetros - 1].moveRight();
-        allTetros[totalTetros - 1].display();
-        break;
-    case GLUT_KEY_UP:
-        // Rotate shape
-        break;
-    case GLUT_KEY_DOWN:
-        allTetros[totalTetros - 1].moveDownwards();
-        allTetros[totalTetros - 1].display();
-        break;
+        // handle special keys
+        switch (key)
+        {
+        case GLUT_KEY_LEFT:
+            allTetros[totalTetros - 1].moveLeft();
+            allTetros[totalTetros - 1].display();
+            break;
+        case GLUT_KEY_RIGHT:
+            allTetros[totalTetros - 1].moveRight();
+            allTetros[totalTetros - 1].display();
+            break;
+        case GLUT_KEY_UP:
+            // Rotate shape
+            break;
+        case GLUT_KEY_DOWN:
+            allTetros[totalTetros - 1].moveDownwards();
+            allTetros[totalTetros - 1].display();
+            break;
+        }
     }
 
     //elapsedTime++;
