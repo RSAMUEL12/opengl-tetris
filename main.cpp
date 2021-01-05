@@ -45,33 +45,33 @@ const bool tetroShapes[28][4] =
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {1, 1, 1, 1},
+        {2, 2, 2, 2},
         {0, 0, 0, 0},
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {0, 0, 1, 1},
-        {0, 1, 1, 0},
+        {0, 0, 3, 3},
+        {0, 3, 3, 0},
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {0, 1, 1, 0},
-        {0, 0, 1, 1},
+        {0, 4, 4, 0},
+        {0, 0, 4, 4},
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {0, 1, 1, 1},
-        {0, 1, 0, 0},
+        {0, 5, 5, 5},
+        {0, 5, 0, 0},
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {0, 1, 1, 1},
-        {0, 0, 0, 1},
+        {0, 6, 6, 6},
+        {0, 0, 0, 6},
         {0, 0, 0, 0},
 
         {0, 0, 0, 0},
-        {0, 1, 1, 1},
-        {0, 0, 1, 0},
+        {0, 7, 7, 7},
+        {0, 0, 7, 0},
         {0, 0, 0, 0},
 };
 
@@ -90,6 +90,7 @@ private:
     float right;
     float bottom;
     float top;
+    int type;
 
 public:
     // Takes the row and column from the matrix that represents the tetris grid
@@ -120,8 +121,10 @@ public:
     }
     void setRowColumn(int row, int column)
     {
+        boardLocations[Block::row][Block::column] = 0;
         Block::row = row;
         Block::column = column;
+        boardLocations[Block::row][Block::column] = 0;
         resetCoords();
     }
     void resetCoords()
@@ -160,7 +163,6 @@ public:
     Tetronimo() {}
     void create()
     {
-        srand(time(0));
         type = rand() % 7;
         for (int y = 0; y < 4; y++)
         {
@@ -205,7 +207,20 @@ public:
         for (int i = 0; i < 4; i++)
         {
             int column = blocks[i].getColumn();
-            if (column >= 1)
+            if (column <= 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool checkRight()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            int column = blocks[i].getColumn();
+            if (column >= 10)
             {
                 return false;
             }
@@ -239,18 +254,71 @@ public:
         return false;
     }
 
-    void moveDownwards()
+    void moveLeft()
+    {
+        printf("%x\n", checkLeft());
+        if (checkLeft() == true)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Check if a boundary is hit
+                blocks[i].setRowColumn(blocks[i].getRow(), blocks[i].getColumn() - 1);
+                blocks[i].display();
+            }
+        }
+    }
+
+    void moveRight()
+    {
+        if (checkRight() == true)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Check if a boundary is hit
+                blocks[i].setRowColumn(blocks[i].getRow(), blocks[i].getColumn() + 1);
+                blocks[i].display();
+            }
+        }
+    }
+
+    void fall()
     {
         if (checkDown() == true and elapsedTime > 0)
         {
             for (int i = 0; i < 4; i++)
             {
                 // Check if a boundary is hit
-                blocks[i].setRowColumn(blocks[i].getRow() + 1, blocks[i].getColumn());
+                int row = blocks[i].getRow();
+                int column = blocks[i].getColumn();
+                blocks[i].setRowColumn(row + 1, column);
+                //printf("%d, %d\n", row, column);
                 blocks[i].display();
             }
         }
-        elapsedTime--;
+        if (elapsedTime > 0)
+        {
+            elapsedTime--;
+        }
+    }
+
+    void moveDownwards()
+    {
+        if (checkDown() == true)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Check if a boundary is hit
+                int row = blocks[i].getRow();
+                int column = blocks[i].getColumn();
+                blocks[i].setRowColumn(row + 1, column);
+                //printf("%d, %d\n", row, column);
+                blocks[i].display();
+            }
+        }
+        if (elapsedTime > 0)
+        {
+            elapsedTime--;
+        }
     }
 
     // Display function calls the Block display function to show the tetromino
@@ -327,11 +395,12 @@ void init()
 
 Tetronimo allTetros[10];
 int totalTetros = 0;
+
 void playGame()
 {
     while (newBlock)
     {
-        printf("New Block made...\n");
+        //printf("New Block made...\n");
         Tetronimo tetro;
         tetro.create();
         tetro.spawnShape();
@@ -339,13 +408,13 @@ void playGame()
         totalTetros++;
         newBlock = false;
     }
+
     for (int i = 0; i < totalTetros; i++)
     {
         if (i == totalTetros - 1)
         {
-            allTetros[i].moveDownwards();
+            allTetros[i].fall();
             newBlock = allTetros[i].isBottom();
-            printf("%x\n", newBlock);
         }
         allTetros[i].display();
     }
@@ -358,7 +427,6 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT);
     glColor3f(1, 1, 1);
     drawGrid();
-    drawBlock();
     playGame();
     glutSwapBuffers(); // swap the backbuffer with the front
     //printf("Display Done...\n");
@@ -374,9 +442,35 @@ void idle()
 
 void timer_func(int n)
 {
-    printf("Timer called\n");
     glutPostRedisplay();
-    glutTimerFunc(5000, timer_func, 0);
+    elapsedTime++;
+    glutTimerFunc(500, timer_func, 0);
+}
+
+void special(int key, int, int)
+{
+    // handle special keys
+    switch (key)
+    {
+    case GLUT_KEY_LEFT:
+        allTetros[totalTetros - 1].moveLeft();
+        allTetros[totalTetros - 1].display();
+        break;
+    case GLUT_KEY_RIGHT:
+        allTetros[totalTetros - 1].moveRight();
+        allTetros[totalTetros - 1].display();
+        break;
+    case GLUT_KEY_UP:
+        // Rotate shape
+        break;
+    case GLUT_KEY_DOWN:
+        allTetros[totalTetros - 1].moveDownwards();
+        allTetros[totalTetros - 1].display();
+        break;
+    }
+
+    //elapsedTime++;
+    glutPostRedisplay();
 }
 
 int main(int argc, char *argv[])
@@ -387,13 +481,14 @@ int main(int argc, char *argv[])
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Tetris");
     init();
+    srand(time(0));
     glutDisplayFunc(display);
-    glutIdleFunc(idle);
-    //glutTimerFunc(5000, timer_func, 0);
+    //glutIdleFunc(idle);
+    glutTimerFunc(500, timer_func, 0);
 
     // handlers for keyboard input
     //glutKeyboardFunc(keyboard);
-    //glutSpecialFunc(special);
+    glutSpecialFunc(special);
 
     glutMainLoop();
 
