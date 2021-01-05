@@ -22,6 +22,7 @@
 
 const char shapes[] = {'I', 'J', 'L', 'O', 'S', 'Z', 'T'};
 int boardLocations[ROWS][COLUMNS] = {0};
+int landedBlockLocations[ROWS][COLUMNS] = {0};
 float elapsedTime = 0.0f;
 
 const float LEFT = 0;
@@ -36,6 +37,11 @@ const float tt_RIGHT = 600;
 const float tt_BOTTOM = 100;
 const float tt_TOP = 900;
 
+struct Coordinate
+{
+    int row;
+    int column;
+};
 // Tetronmino shapes that will be chosen at random
 const bool tetroShapes[28][4] =
     {
@@ -97,10 +103,11 @@ public:
     // and creates the left, right, top and bottom coordinates
     Block() {}
 
-    Block(int row, int column)
+    Block(int row, int column, int type)
     {
         Block::row = row;
         Block::column = column;
+        Block::type = type;
         resetCoords();
     }
     void getCoords()
@@ -124,18 +131,23 @@ public:
         boardLocations[Block::row][Block::column] = 0;
         Block::row = row;
         Block::column = column;
-        boardLocations[Block::row][Block::column] = 0;
+        boardLocations[Block::row][Block::column] = type;
         resetCoords();
     }
     void resetCoords()
     {
-        left = tt_LEFT + (blockWidth * (column - 1));
-        right = tt_LEFT + (blockWidth * (column));
-        bottom = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - row));
-        top = tt_BOTTOM + (blockHeight * (VISABLE_ROWS - (row + 1)));
+        left = tt_LEFT + (blockWidth * (column));
+        right = tt_LEFT + (blockWidth * (column + 1));
+        bottom = tt_BOTTOM + (blockHeight * (ROWS - row));
+        top = tt_BOTTOM + (blockHeight * (ROWS - (row + 1)));
     }
     void display()
     {
+        if (row < 2)
+        {
+            return;
+        }
+        //printf("%d, %d", row, column);
         glColor3f(1, 1, 0);
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
@@ -185,8 +197,8 @@ public:
     }
     void spawnShape()
     {
-        int row = -1;
-        int column = 4;
+        int row = -2;
+        int column = 3;
         int index = 0;
         for (int i = 0; i < 4; i++)
         {
@@ -194,7 +206,7 @@ public:
             {
                 if (shape[i][j] == 1)
                 {
-                    Block block(row + i, column + j);
+                    Block block(row + i, column + j, type);
                     blocks[index] = block;
                     index++;
                 }
@@ -207,7 +219,7 @@ public:
         for (int i = 0; i < 4; i++)
         {
             int column = blocks[i].getColumn();
-            if (column <= 1)
+            if (column <= 0)
             {
                 return false;
             }
@@ -220,7 +232,7 @@ public:
         for (int i = 0; i < 4; i++)
         {
             int column = blocks[i].getColumn();
-            if (column >= 10)
+            if (column >= 9)
             {
                 return false;
             }
@@ -233,7 +245,7 @@ public:
         for (int i = 0; i < 4; i++)
         {
             int row = blocks[i].getRow();
-            if (row >= 19)
+            if (row >= 21)
             {
                 return false;
             }
@@ -246,17 +258,50 @@ public:
         for (int i = 0; i < 4; i++)
         {
             int row = blocks[i].getRow();
-            if (row == 19)
+            if (row == 21)
             {
+                setLanded();
                 return true;
             }
         }
         return false;
     }
 
+    void setLanded()
+    {
+        //printf("Landed...\n");
+        for (int i = 0; i < 4; i++)
+        {
+            int row = blocks[i].getRow();
+            int column = blocks[i].getColumn();
+            printf("Type: %d", type);
+            landedBlockLocations[row][column] = type;
+        }
+    }
+
+    // Check if there is a collision with another block from another tetronimo
+    bool isCollision()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            int row = blocks[i].getRow();
+            int column = blocks[i].getColumn();
+            if (row != 21 and column != 9)
+            {
+                if (landedBlockLocations[row + 1][column] != 0)
+                {
+                    printf("Collision detected...\n");
+                    setLanded();
+                    return true;
+                }
+            }
+        }
+        //printf("\n");
+        return false;
+    }
+
     void moveLeft()
     {
-        printf("%x\n", checkLeft());
         if (checkLeft() == true)
         {
             for (int i = 0; i < 4; i++)
@@ -283,7 +328,7 @@ public:
 
     void fall()
     {
-        if (checkDown() == true and elapsedTime > 0)
+        if (checkDown() == true and elapsedTime > 0 and isCollision() == false)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -303,7 +348,7 @@ public:
 
     void moveDownwards()
     {
-        if (checkDown() == true)
+        if (checkDown() == true and isCollision() == false)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -339,6 +384,17 @@ char randomSelect()
     return shapes[randIndex];
 }
 
+void printBoard()
+{
+    for (int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLUMNS; j++)
+        {
+            printf("%d ", landedBlockLocations[i][j]);
+        }
+        printf("\n");
+    }
+}
 // Creates the Tetris Grid where the game will be displaying the blocks
 void drawGrid()
 {
@@ -369,7 +425,7 @@ void drawBlock()
     int column = 10;
     if (boardLocations[row][column] == 0)
     {
-        Block block(row, column);
+        Block block(row, column, 1);
         blockLocations[row][column] = block;
         boardLocations[row][column] = 1;
     }
@@ -400,7 +456,8 @@ void playGame()
 {
     while (newBlock)
     {
-        //printf("New Block made...\n");
+        //printBoard();
+        printf("New Block made...\n");
         Tetronimo tetro;
         tetro.create();
         tetro.spawnShape();
@@ -414,7 +471,10 @@ void playGame()
         if (i == totalTetros - 1)
         {
             allTetros[i].fall();
-            newBlock = allTetros[i].isBottom();
+            if (allTetros[i].isBottom() or allTetros[i].isCollision())
+            {
+                newBlock = true;
+            };
         }
         allTetros[i].display();
     }
@@ -444,7 +504,7 @@ void timer_func(int n)
 {
     glutPostRedisplay();
     elapsedTime++;
-    glutTimerFunc(500, timer_func, 0);
+    glutTimerFunc(1000, timer_func, 0);
 }
 
 void special(int key, int, int)
@@ -484,7 +544,7 @@ int main(int argc, char *argv[])
     srand(time(0));
     glutDisplayFunc(display);
     //glutIdleFunc(idle);
-    glutTimerFunc(500, timer_func, 0);
+    glutTimerFunc(1000, timer_func, 0);
 
     // handlers for keyboard input
     //glutKeyboardFunc(keyboard);
