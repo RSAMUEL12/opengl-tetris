@@ -193,23 +193,7 @@ public:
         //CHECK FOR COLLISIONS AND PERFORM MOVEMENT
     }
 };
-
-void rotateMatrix(int arr[4][4])
-{
-    int n = 4;
-    for (int i = 0; i < n / 2; i++)
-    {
-        for (int j = i; j < n - i - 1; j++)
-        {
-            // Swapping elements after each iteration in Clockwise direction
-            int temp = arr[i][j];
-            arr[i][j] = arr[n - 1 - j][i];
-            arr[n - 1 - j][i] = arr[n - 1 - i][n - 1 - j];
-            arr[n - 1 - i][n - 1 - j] = arr[j][n - 1 - i];
-            arr[j][n - 1 - i] = temp;
-        }
-    }
-}
+Block blockLocations[ROWS][COLUMNS];
 
 // Tetronimo class are the different shapes that can appear and be placed on the grid
 // They are made up of Blocks
@@ -219,16 +203,22 @@ class Tetronimo
 {
 private:
     int shape[4][4];
-    Block blocks[4]; //stores tetromino's corresponding blocks, each block has their own coordinates
+    int original[4][4]; //used for rotation to store the original shape
+    Block blocks[4];    //stores tetromino's corresponding blocks, each block has their own coordinates
     int type;
     int size;
+    int columnDiff;
+    int rowDiff;
 
 public:
-    Tetronimo()
+    // used for array initialisation of type Tetronimo
+    Tetronimo(){};
+    // create when you want to construct a tetro
+    Tetronimo(bool x)
     {
         create();
         spawnShape(-2, 3);
-    }
+    };
     void create()
     {
         type = (rand() % 7);
@@ -238,6 +228,7 @@ public:
             for (int x = 0; x < 4; x++)
             {
                 shape[y][x] = tetroShapes[(type * 4) + y][x];
+                original[y][x] = tetroShapes[(type * 4) + y][x];
             }
         }
     }
@@ -255,8 +246,8 @@ public:
     void spawnShape(int row, int column)
     {
         int index = 0;
-        int columnDiff = 0;
-        int rowDiff = 0;
+        columnDiff = 0;
+        rowDiff = 0;
         while (index < size)
         {
             for (int i = 0; i < 4; i++)
@@ -265,35 +256,20 @@ public:
                 {
                     if (shape[i][j] == 1)
                     {
-                        int blockRow = row + i;
-                        int blockColumn = column + j;
-                        // if called after a rotation, ensure that the new row, column values are within the board by moving the piece
-                        // by how far the furthest piece is away from the board, and add this difference to the row
-                        if (blockColumn < 0 and columnDiff == 0)
-                        {
-                            columnDiff = 0 - blockColumn;
-                        }
-                        else if (blockColumn > 10 and columnDiff == 0)
-                        {
-                            columnDiff = 10 - blockColumn; //should be a neg value added to all the columns
-                        }
-
-                        if (blockRow < 0 and rowDiff == 0)
-                        {
-                            rowDiff = 0 - blockRow;
-                        }
-                        else if (row > 22 and rowDiff == 0)
-                        {
-                            rowDiff = 10 - blockRow; //should be a neg value added to all the columns
-                        }
-                        printf("%d", blockRow + rowDiff);
-                        Block block(blockRow + rowDiff, blockColumn + columnDiff, type);
+                        // translate the shape onto the grid using "row" and "column" values
+                        // they are either default of -2 and 3 for spawn points
+                        // or, they are specified if a shape is rotated and needs to be respawned in a new location
+                        Coordinate c;
+                        c = performTranslation(row, column, i, j);
+                        //printf("%d, %d |", c.row, c.column);
+                        Block block(c.row, c.column, type);
                         blocks[index] = block;
                         index++;
                     }
                 }
             }
         }
+        printf("\n");
     }
 
     bool checkLeft()
@@ -315,6 +291,80 @@ public:
             }
         }
         return true;
+    }
+
+    Coordinate performTranslation(int row, int column, int i, int j)
+    {
+        // if there is a block on the row and column specified, then do not rotate
+        int newRow = 0;
+        int newColumn = 0;
+
+        int blockRow = row + i;
+
+        int blockColumn = column + j;
+        //printf(" %d, %d |", blockRow, blockColumn);
+        // columnDiff and rowDiff ensure that if the rotate block appears outside of the board,
+        // it will move it onto the board by finding the distance from the outside block to the boundary
+        if (blockColumn < 0 and columnDiff == 0)
+        {
+            columnDiff = 0 - blockColumn;
+        }
+        else if (blockColumn > 10 and columnDiff == 0)
+        {
+            columnDiff = 10 - blockColumn; //should be a neg value added to all the columns
+        }
+
+        if (blockRow < 0 and rowDiff == 0)
+        {
+            rowDiff = 0 - blockRow;
+        }
+        else if (row > 22 and rowDiff == 0)
+        {
+            rowDiff = 10 - blockRow; //should be a neg value added to all the columns
+        }
+
+        newRow = blockRow + rowDiff;
+        newColumn = blockColumn + columnDiff;
+        Coordinate coord;
+        //printf(" %d, %d |", newRow, newColumn);
+        coord.row = newRow;
+        coord.column = newColumn;
+        return coord;
+    }
+    // function to check if the rotated shape will collide or overlap with any landed blocks
+    bool checkRotationCollision(int row, int column)
+    {
+        // loop through the shape matrix
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (shape[i][j] != 0)
+                {
+                    Coordinate c;
+                    c = performTranslation(row, column, i, j);
+                    // retrieve the translated coords of the block after rotation
+                    // check if it overlaps with any existing landed blocks
+                    // if so, return true so that the shape can be reverted to the original
+                    if (c.row >= 0)
+                    {
+                        if (landedBlockLocations[c.row][c.column] != 0)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (c.column > 9 or c.column < 0)
+                    {
+                        return true;
+                    }
+                    else if (c.row > 21)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     bool checkRight()
@@ -382,6 +432,7 @@ public:
             int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
             landedBlockLocations[row][column] = 1;
+            blockLocations[row][column] = blocks[i];
         }
     }
 
@@ -476,7 +527,6 @@ public:
     void rotateRight()
     {
         int n = 4;
-        int original[4][4];
         // copy the original shape to an array so it can be used later
         for (int i = 0; i < 4; i++)
         {
@@ -498,7 +548,7 @@ public:
             }
         }
         // Printing matrix elements after rotation
-        std::cout << "\nMatrix after rotating 90 degree clockwise:\n";
+        /*std::cout << "\nMatrix after rotating 90 degree clockwise:\n";
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -506,7 +556,7 @@ public:
                 std::cout << shape[i][j] << " ";
             }
             std::cout << "\n";
-        }
+        }*/
         int diffRows = 0;
         int diffColumns = 0;
         int index = 0;
@@ -528,9 +578,25 @@ public:
             }
         }
 
-        // use the translation matrix on the indices of the shape variable to move the blocks in the correct
-        // position for rotation
-        spawnShape(diffRows, diffColumns);
+        // check if a collision occurs with the new shape by translating it onto the
+        // tetris board, and if so, revert the shape back to the original
+        if (checkRotationCollision(diffRows, diffColumns))
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    shape[i][j] = original[i][j];
+                }
+            }
+        }
+        // continue with the rotation
+        else
+        {
+            // use the translation matrix on the indices of the shape variable to move the blocks in the correct
+            // position for rotation
+            spawnShape(diffRows, diffColumns);
+        }
     }
 
     // Display function calls the Block display function to show the tetromino
@@ -542,8 +608,6 @@ public:
         }
     }
 };
-
-Block blockLocations[ROWS][COLUMNS] = {};
 
 char randomSelect()
 {
@@ -589,12 +653,36 @@ void drawGrid()
 // Clear any rows that are completely filled
 void clearLines()
 {
-    //TODO: Can redo how blocks are stored and create pointers to blocks when forming a Tetromino, whilst having an array
-    // storing the locations of blocks with each element a Block object.
-    // 1. So when it comes to clearing lines, check for an element
-    // in the row that equal to 0, then you cannot clear the line and move on
-    // 2. If a line can be cleared, change the element of an array from 1 to 0 in boardLocations, delete the Block element in blockLocations
-    // which should delete the values in the Tetromino blocks array -> reduce size by 1
+    // goes through all the rows to see if any lines need to be cleared
+    for (int i = 0; i < ROWS; i++)
+    {
+        if (landedBlockLocations[i][0] != 0 and landedBlockLocations[i][1] != 0 and landedBlockLocations[i][2] != 0 and landedBlockLocations[i][3] != 0 and landedBlockLocations[i][4] != 0 and landedBlockLocations[i][5] != 0 and landedBlockLocations[i][6] != 0 and landedBlockLocations[i][7] != 0 and landedBlockLocations[i][8] != 0 and landedBlockLocations[i][9] != 0)
+        {
+            printBoard();
+            printf("i: %d\n", i);
+            // clear the line if they are all full
+            for (int g = i - 1; g > 0; g--)
+            {
+                //printf("%d\n", g + 1);
+                for (int h = 0; h < COLUMNS; h++)
+                {
+                    landedBlockLocations[g + 1][h] = landedBlockLocations[g][h];
+                    blockLocations[g + 1][h] = blockLocations[g][h];
+                    blockLocations[g + 1][h].setRowColumn(g + 1, h);
+                }
+                printf("row of last value: %d\n", blockLocations[i][0].getRow());
+            }
+
+            for (int h = 0; h < COLUMNS; h++)
+            {
+                landedBlockLocations[0][h] = 0;
+                Block block;
+                blockLocations[0][h] = block;
+            }
+
+            printBoard();
+        }
+    }
 }
 
 void init()
@@ -608,6 +696,8 @@ void init()
 }
 
 Tetronimo allTetros[10];
+Tetronimo currentTetro;
+Tetronimo nextTetro;
 int totalTetros = 0;
 
 void playGame()
@@ -616,13 +706,36 @@ void playGame()
     {
         //printBoard();
         printf("New Block made...\n");
-        Tetronimo tetro;
+        Tetronimo tetro(true);
         allTetros[totalTetros] = tetro;
+        currentTetro = tetro;
         totalTetros++;
         newBlock = false;
     }
 
-    for (int i = 0; i < totalTetros; i++)
+    // display all the blocks on the grid
+    for (int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLUMNS; j++)
+        {
+            if (landedBlockLocations[i][j] != 0)
+            {
+                blockLocations[i][j].display();
+            }
+        }
+    }
+
+    currentTetro.fall();
+    if (currentTetro.isBottom() or currentTetro.isCollision())
+    {
+        currentTetro.setLanded();
+        newBlock = true;
+    };
+    clearLines();
+    currentTetro.display();
+    blockCreated = true;
+
+    /*for (int i = 0; i < totalTetros; i++)
     {
         if (i == totalTetros - 1)
         {
@@ -635,12 +748,12 @@ void playGame()
         }
         allTetros[i].display();
         blockCreated = true;
-    }
+    }*/
 }
 
 void tester()
 {
-    Tetronimo t;
+    Tetronimo t(true);
     t.rotateRight();
     printf("\n");
     t.rotateRight();
@@ -688,21 +801,21 @@ void special(int key, int, int)
         switch (key)
         {
         case GLUT_KEY_LEFT:
-            allTetros[totalTetros - 1].moveLeft();
-            allTetros[totalTetros - 1].display();
+            currentTetro.moveLeft();
+            currentTetro.display();
             break;
         case GLUT_KEY_RIGHT:
-            allTetros[totalTetros - 1].moveRight();
-            allTetros[totalTetros - 1].display();
+            currentTetro.moveRight();
+            currentTetro.display();
             break;
         case GLUT_KEY_UP:
             // Rotate shape
-            allTetros[totalTetros - 1].rotateRight();
-            allTetros[totalTetros - 1].display();
+            currentTetro.rotateRight();
+            currentTetro.display();
             break;
         case GLUT_KEY_DOWN:
-            allTetros[totalTetros - 1].moveDownwards();
-            allTetros[totalTetros - 1].display();
+            currentTetro.moveDownwards();
+            currentTetro.display();
             break;
         }
     }
