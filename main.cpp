@@ -194,6 +194,23 @@ public:
     }
 };
 
+void rotateMatrix(int arr[4][4])
+{
+    int n = 4;
+    for (int i = 0; i < n / 2; i++)
+    {
+        for (int j = i; j < n - i - 1; j++)
+        {
+            // Swapping elements after each iteration in Clockwise direction
+            int temp = arr[i][j];
+            arr[i][j] = arr[n - 1 - j][i];
+            arr[n - 1 - j][i] = arr[n - 1 - i][n - 1 - j];
+            arr[n - 1 - i][n - 1 - j] = arr[j][n - 1 - i];
+            arr[j][n - 1 - i] = temp;
+        }
+    }
+}
+
 // Tetronimo class are the different shapes that can appear and be placed on the grid
 // They are made up of Blocks
 class Tetronimo
@@ -202,15 +219,20 @@ class Tetronimo
 {
 private:
     int shape[4][4];
-    Block blocks[4]; //stores pointers to its corresponding blocks, each block has their own coordinates
+    Block blocks[4]; //stores tetromino's corresponding blocks, each block has their own coordinates
     int type;
     int size;
 
 public:
-    Tetronimo() {}
+    Tetronimo()
+    {
+        create();
+        spawnShape(-2, 3);
+    }
     void create()
     {
         type = (rand() % 7);
+        size = 4;
         for (int y = 0; y < 4; y++)
         {
             for (int x = 0; x < 4; x++)
@@ -230,20 +252,45 @@ public:
             std::cout << "\n";
         }
     }
-    void spawnShape()
+    void spawnShape(int row, int column)
     {
-        int row = -2;
-        int column = 3;
         int index = 0;
-        for (int i = 0; i < 4; i++)
+        int columnDiff = 0;
+        int rowDiff = 0;
+        while (index < size)
         {
-            for (int j = 0; j < 4; j++)
+            for (int i = 0; i < 4; i++)
             {
-                if (shape[i][j] == 1)
+                for (int j = 0; j < 4; j++)
                 {
-                    Block block(row + i, column + j, type);
-                    blocks[index] = block;
-                    index++;
+                    if (shape[i][j] == 1)
+                    {
+                        int blockRow = row + i;
+                        int blockColumn = column + j;
+                        // if called after a rotation, ensure that the new row, column values are within the board by moving the piece
+                        // by how far the furthest piece is away from the board, and add this difference to the row
+                        if (blockColumn < 0 and columnDiff == 0)
+                        {
+                            columnDiff = 0 - blockColumn;
+                        }
+                        else if (blockColumn > 10 and columnDiff == 0)
+                        {
+                            columnDiff = 10 - blockColumn; //should be a neg value added to all the columns
+                        }
+
+                        if (blockRow < 0 and rowDiff == 0)
+                        {
+                            rowDiff = 0 - blockRow;
+                        }
+                        else if (row > 22 and rowDiff == 0)
+                        {
+                            rowDiff = 10 - blockRow; //should be a neg value added to all the columns
+                        }
+                        printf("%d", blockRow + rowDiff);
+                        Block block(blockRow + rowDiff, blockColumn + columnDiff, type);
+                        blocks[index] = block;
+                        index++;
+                    }
                 }
             }
         }
@@ -253,10 +300,18 @@ public:
     {
         for (int i = 0; i < size; i++)
         {
+            int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
             if (column <= 0)
             {
                 return false;
+            }
+            else
+            {
+                if (landedBlockLocations[row][column - 1] != 0)
+                {
+                    return false;
+                }
             }
         }
         return true;
@@ -266,10 +321,18 @@ public:
     {
         for (int i = 0; i < size; i++)
         {
+            int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
             if (column >= 9)
             {
                 return false;
+            }
+            else
+            {
+                if (landedBlockLocations[row][column + 1] != 0)
+                {
+                    return false;
+                }
             }
         }
         return true;
@@ -292,11 +355,20 @@ public:
     {
         for (int i = 0; i < size; i++)
         {
+            int column = blocks[i].getColumn();
             int row = blocks[i].getRow();
             if (row == 21)
             {
                 setLanded();
                 return true;
+            }
+            else if ((row != 21 and column != 9))
+            {
+                if (landedBlockLocations[row + 1][column] != 0)
+                {
+                    setLanded();
+                    return true;
+                }
             }
         }
         return false;
@@ -320,23 +392,24 @@ public:
         {
             int row = blocks[i].getRow();
             int column = blocks[i].getColumn();
-            if ((row != 21 and column != 9))
+            // Check if there is a collision with another block below
+            if (row != 21)
             {
                 if (landedBlockLocations[row + 1][column] != 0)
                 {
                     printf("Collision detected...\n");
-                    setLanded();
                     return true;
                 }
             }
         }
-        //printf("\n");
         return false;
     }
+    //printf("\n");
 
-    void moveLeft()
+    void
+    moveLeft()
     {
-        if (checkLeft() == true)
+        if (checkLeft() == true and isCollision() == false)
         {
             for (int i = 0; i < size; i++)
             {
@@ -349,7 +422,7 @@ public:
 
     void moveRight()
     {
-        if (checkRight() == true)
+        if (checkRight() == true and isCollision() == false)
         {
             for (int i = 0; i < size; i++)
             {
@@ -398,6 +471,66 @@ public:
         {
             elapsedTime--;
         }
+    }
+
+    void rotateRight()
+    {
+        int n = 4;
+        int original[4][4];
+        // copy the original shape to an array so it can be used later
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                original[i][j] = shape[i][j];
+            }
+        }
+        for (int i = 0; i < n / 2; i++)
+        {
+            for (int j = i; j < n - i - 1; j++)
+            {
+                // Swapping elements after each iteration in Clockwise direction
+                int temp = shape[i][j];
+                shape[i][j] = shape[n - 1 - j][i];
+                shape[n - 1 - j][i] = shape[n - 1 - i][n - 1 - j];
+                shape[n - 1 - i][n - 1 - j] = shape[j][n - 1 - i];
+                shape[j][n - 1 - i] = temp;
+            }
+        }
+        // Printing matrix elements after rotation
+        std::cout << "\nMatrix after rotating 90 degree clockwise:\n";
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                std::cout << shape[i][j] << " ";
+            }
+            std::cout << "\n";
+        }
+        int diffRows = 0;
+        int diffColumns = 0;
+        int index = 0;
+        // Calculate the translation matrix from the original shape matrix and the current block rows and columns
+        // to translate the new shape onto the blockLocations matrix with the correct row and column numbers.
+        while (index < size)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    if (original[i][j] != 0)
+                    {
+                        diffRows = blocks[index].getRow() - i;
+                        diffColumns = blocks[index].getColumn() - i;
+                        index++;
+                    }
+                }
+            }
+        }
+
+        // use the translation matrix on the indices of the shape variable to move the blocks in the correct
+        // position for rotation
+        spawnShape(diffRows, diffColumns);
     }
 
     // Display function calls the Block display function to show the tetromino
@@ -456,6 +589,12 @@ void drawGrid()
 // Clear any rows that are completely filled
 void clearLines()
 {
+    //TODO: Can redo how blocks are stored and create pointers to blocks when forming a Tetromino, whilst having an array
+    // storing the locations of blocks with each element a Block object.
+    // 1. So when it comes to clearing lines, check for an element
+    // in the row that equal to 0, then you cannot clear the line and move on
+    // 2. If a line can be cleared, change the element of an array from 1 to 0 in boardLocations, delete the Block element in blockLocations
+    // which should delete the values in the Tetromino blocks array -> reduce size by 1
 }
 
 void init()
@@ -478,8 +617,6 @@ void playGame()
         //printBoard();
         printf("New Block made...\n");
         Tetronimo tetro;
-        tetro.create();
-        tetro.spawnShape();
         allTetros[totalTetros] = tetro;
         totalTetros++;
         newBlock = false;
@@ -492,12 +629,27 @@ void playGame()
             allTetros[i].fall();
             if (allTetros[i].isBottom() or allTetros[i].isCollision())
             {
+                allTetros[i].setLanded();
                 newBlock = true;
             };
         }
         allTetros[i].display();
         blockCreated = true;
     }
+}
+
+void tester()
+{
+    Tetronimo t;
+    t.rotateRight();
+    printf("\n");
+    t.rotateRight();
+    printf("\n");
+    t.rotateRight();
+    printf("\n");
+    t.rotateRight();
+    printf("\n");
+    exit(0);
 }
 
 // redraw callback
@@ -508,6 +660,7 @@ void display()
     glColor3f(1, 1, 1);
     drawGrid();
     playGame();
+    //tester();
     glutSwapBuffers(); // swap the backbuffer with the front
     //printf("Display Done...\n");
 }
@@ -544,6 +697,8 @@ void special(int key, int, int)
             break;
         case GLUT_KEY_UP:
             // Rotate shape
+            allTetros[totalTetros - 1].rotateRight();
+            allTetros[totalTetros - 1].display();
             break;
         case GLUT_KEY_DOWN:
             allTetros[totalTetros - 1].moveDownwards();
