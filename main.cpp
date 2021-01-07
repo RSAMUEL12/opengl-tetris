@@ -37,6 +37,13 @@ const float tt_RIGHT = 600;
 const float tt_BOTTOM = 100;
 const float tt_TOP = 900;
 
+// la = lookahead
+// coordinates for drawing the lookahead box to show the next shape that will be displayed
+const float la_LEFT = 100;
+const float la_RIGHT = 200;
+const float la_BOTTOM = 800;
+const float la_TOP = 900;
+
 struct Coordinate
 {
     int row;
@@ -92,6 +99,9 @@ const bool tetroShapes[28][4] =
 
 const float blockHeight = (tt_TOP - tt_BOTTOM) / VISABLE_ROWS;
 const float blockWidth = (tt_RIGHT - tt_LEFT) / COLUMNS;
+
+const float laBlockHeight = (la_TOP - la_BOTTOM) / 4;
+const float laBlockWidth = (la_RIGHT - la_LEFT) / 4;
 
 bool newBlock = true;
 bool blockCreated = false;
@@ -192,6 +202,40 @@ public:
 
         //CHECK FOR COLLISIONS AND PERFORM MOVEMENT
     }
+    // overloading display() so that a block can be drawn with specific locations // for lookahead blocks
+    void display(float left, float right, float bottom, float top)
+    {
+        switch (type)
+        {
+        case (0):
+            glColor3f(1, 1, 0);
+            break;
+        case (1):
+            glColor3f(0.2, 1, 1);
+            break;
+        case (2):
+            glColor3f(0.17, 1, 0);
+            break;
+        case (3):
+            glColor3f(1, 0, 0);
+            break;
+        case (4):
+            glColor3f(1, 0.67, 0);
+            break;
+        case (5):
+            glColor3f(0, 0, 1);
+            break;
+        case (6):
+            glColor3f(0.7, 0.1, 1);
+            break;
+        }
+        glBegin(GL_QUADS);
+        glVertex2f(left, bottom);
+        glVertex2f(left, top);
+        glVertex2f(right, top);
+        glVertex2f(right, bottom);
+        glEnd();
+    }
 };
 Block blockLocations[ROWS][COLUMNS];
 
@@ -202,15 +246,15 @@ class Tetronimo
 // check where the shape will fit in boardLocations and pass the row and column number to each new Block object - store in blocks
 {
 private:
-    int shape[4][4];
     int original[4][4]; //used for rotation to store the original shape
-    Block blocks[4];    //stores tetromino's corresponding blocks, each block has their own coordinates
     int type;
     int size;
     int columnDiff;
     int rowDiff;
 
 public:
+    int shape[4][4];
+    Block blocks[4]; //stores tetromino's corresponding blocks, each block has their own coordinates
     // used for array initialisation of type Tetronimo
     Tetronimo(){};
     // create when you want to construct a tetro
@@ -607,6 +651,15 @@ public:
             blocks[i].display();
         }
     }
+
+    // Display for overloaded display() func of block - used for lookahead blocks
+    void display(float left, float right, float bottom, float top)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            blocks[i].display(left, right, bottom, top);
+        }
+    }
 };
 
 char randomSelect()
@@ -647,6 +700,31 @@ void drawGrid()
         glVertex2f(tt_LEFT, tt_BOTTOM + ((tt_TOP - tt_BOTTOM) / 20) * i);
         glVertex2f(tt_RIGHT, tt_BOTTOM + ((tt_TOP - tt_BOTTOM) / 20) * i);
         glEnd();
+    }
+}
+
+// Creates the Tetris Grid where the game will be displaying the blocks
+void drawLookahead(Tetronimo t)
+{
+    int index = 0;
+    float left;
+    float right;
+    float top;
+    float bottom;
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            if (t.shape[i][j] != 0)
+            {
+                left = la_LEFT + (laBlockWidth * (j));
+                right = la_LEFT + (laBlockWidth * (j + 1));
+                bottom = la_BOTTOM + (laBlockHeight * (4 - i));
+                top = la_BOTTOM + (laBlockHeight * (4 - (i + 1)));
+                t.blocks[index].display(left, right, bottom, top);
+                index++;
+            }
+        }
     }
 }
 
@@ -695,9 +773,8 @@ void init()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-Tetronimo allTetros[10];
 Tetronimo currentTetro;
-Tetronimo nextTetro;
+Tetronimo nextTetro(true);
 int totalTetros = 0;
 
 void playGame()
@@ -707,12 +784,13 @@ void playGame()
         //printBoard();
         printf("New Block made...\n");
         Tetronimo tetro(true);
-        allTetros[totalTetros] = tetro;
-        currentTetro = tetro;
+        currentTetro = nextTetro;
         totalTetros++;
         newBlock = false;
+        nextTetro = tetro;
     }
 
+    drawLookahead(nextTetro);
     // display all the blocks on the grid
     for (int i = 0; i < ROWS; i++)
     {
