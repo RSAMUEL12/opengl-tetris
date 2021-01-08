@@ -76,11 +76,16 @@ public:
 
     void updateLevel()
     {
-        if (totalClearedLines == (level * 10))
+        if (clearedLines != 0)
         {
             level++;
-            fallSpeed = fallSpeed - (level * 1000);
+            fallSpeed = 1000 - (level * 50);
         }
+        /*if (totalClearedLines == (level * 10))
+        {
+            level++;
+            fallSpeed = fallSpeed - (level * 100);
+        }*/
     }
 };
 
@@ -206,11 +211,12 @@ void clearLines()
             clearedLines++;
             totalClearedLines++;
             //printBoard();
+
+            // add the score once the lines are cleared
+            player.addScore();
+            player.updateLevel();
         }
     }
-    // add the score once the lines are cleared
-    player.addScore();
-    player.updateLevel();
     // reset the clearedLines for next time lines are cleared
     clearedLines = 0;
 }
@@ -234,7 +240,6 @@ void playGame()
 {
     if (!isGameOver)
     {
-        printf("Lines cleared: %d\n", totalClearedLines);
         if (newBlock)
         {
             //printBoard();
@@ -246,6 +251,7 @@ void playGame()
             nextTetro = tetro;
         }
 
+        draw_score(la_LEFT, tt_BOTTOM, player.getScore());
         drawLookahead(nextTetro);
         // display all the blocks on the grid
         for (int i = 0; i < ROWS; i++)
