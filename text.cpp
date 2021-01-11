@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <string>
 #include <iostream>
-using namespace std;
+//using namespace std;
 
 // get the character width to centre text in the middle of the window
 int getCharacterWidth(const char *text, size_t len)
