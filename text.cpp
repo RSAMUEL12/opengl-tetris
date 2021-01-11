@@ -46,7 +46,7 @@ void draw_text(float x, float y, const char *text)
 void draw_score(float x, float y, int score)
 {
     char text[10];
-    std::sprintf(text, "%d", score);
+    sprintf(text, "%d", score);
     size_t len = strlen(text);
     int width = getCharacterWidth(text, len);
     width = width * 0.3;
