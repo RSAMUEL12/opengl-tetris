@@ -10,6 +10,7 @@
 #include <unistd.h>
 #endif
 
+#include <stdio.h>
 #include <stddef.h>
 #include <cstring>
 #include <iostream>
