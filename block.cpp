@@ -17,6 +17,10 @@
 #include <sys/time.h>
 #include "global.cpp"
 
+#include "load_and_bind_texture.h"
+#include "create_and_compile_shaders.h"
+#include "lights_material.h"
+
 const float blockHeight = (tt_TOP - tt_BOTTOM) / VISABLE_ROWS;
 const float blockWidth = (tt_RIGHT - tt_LEFT) / COLUMNS;
 
@@ -108,12 +112,43 @@ public:
             glColor3f(0.7, 0.1, 1);
             break;
         }
+
+        // if shader program is installed
+        if (glIsProgram(g_program_obj))
+        {
+            glUseProgram(g_program_obj);
+
+            // send the texture unit ID to fragment shader
+            // it should be 0 for GL_TEXTURE0
+            // it should be 1 for GL_TEXTURE1
+            // it should be 2 for GL_TEXTURE2 and so on
+            glUniform1i(f_tex0_loc, 0);
+            glUniform1i(f_tex1_loc, 1);
+        }
+        else
+            glEnable(GL_TEXTURE_2D); // not needed with shader
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_ceramic);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, g_bump_map);
+
+        glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate
+        glEnable(GL_TEXTURE_GEN_T); //enable texture coordinate
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
         glVertex2f(left, top);
         glVertex2f(right, top);
         glVertex2f(right, bottom);
         glEnd();
+
+        glActiveTexture(GL_TEXTURE2);
+
+        if (glIsProgram(g_program_obj))
+            glUseProgram(0);
+        else
+            glDisable(GL_TEXTURE_2D); // not needed with shader
 
         //CHECK FOR COLLISIONS AND PERFORM MOVEMENT
     }

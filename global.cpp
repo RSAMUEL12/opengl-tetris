@@ -19,3 +19,12 @@ const float la_LEFT = 100;
 const float la_RIGHT = 200;
 const float la_BOTTOM = 800;
 const float la_TOP = 900;
+
+unsigned int g_program_obj = 0;
+unsigned int g_vertex_obj = 0;
+unsigned int g_fragment_obj = 0;
+
+unsigned int g_ceramic = 0;  // texture handle
+unsigned int g_bump_map = 0; // texture handle
+int f_tex0_loc = 0;          // location of texture in fragment shader
+int f_tex1_loc = 0;          // location of texture in fragment shader

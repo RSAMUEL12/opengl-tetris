@@ -34,6 +34,29 @@ int clearedLines = 0;
 int totalClearedLines = 0;
 float fallSpeed = 1000;
 
+struct materials_t
+{
+    float ambient[4];
+    float diffuse[4];
+    float specular[4];
+    float shininess;
+};
+
+const materials_t g_red_plastic = {
+    {0.3f, 0.0f, 0.0f, 1.0f},
+    {0.6f, 0.0f, 0.0f, 1.0f},
+    {0.8f, 0.6f, 0.6f, 1.0f},
+    32.0f};
+
+// properties of a given material
+void set_material(const materials_t &mat)
+{
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat.ambient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat.diffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat.specular);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mat.shininess);
+}
+
 // class to store the Player score
 class Score
 {
@@ -221,8 +244,31 @@ void clearLines()
     clearedLines = 0;
 }
 
-void init()
+void init(int argc, char *argv[])
 {
+    g_ceramic = load_and_bind_texture("/Users/rohansamuel/Documents/Warwick 2020-21/CS324/cs324-labs/images/tile.png");
+    //g_bump_map = load_and_bind_texture("../images/normal.png");
+    g_bump_map = load_and_bind_texture("/Users/rohansamuel/Documents/Warwick 2020-21/CS324/cs324-labs/images/chesterfield.png");
+
+    int max_texture_units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+    fprintf(stderr, "Max texture units is %d\n", max_texture_units);
+
+    if (argc > 2)
+    {
+        g_program_obj = create_and_compile_shaders(argv[1], NULL, argv[2]);
+
+        // get the location of the fragment shader texture variable
+        f_tex0_loc = glGetUniformLocation(g_program_obj, "f_tex0");
+        f_tex1_loc = glGetUniformLocation(g_program_obj, "f_tex1");
+    }
+
+    //init_lights();
+
+    //set_material(g_red_plastic);
+
+    glEnable(GL_DEPTH_TEST);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     // Defines 2d orthographic projection viewing
@@ -356,7 +402,7 @@ int main(int argc, char *argv[])
     glutInitWindowSize(700, 700);
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Tetris");
-    init();
+    init(argc, argv);
     srand(time(0));
     glutDisplayFunc(display);
     //glutIdleFunc(idle);
