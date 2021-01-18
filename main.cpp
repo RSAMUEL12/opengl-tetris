@@ -109,9 +109,20 @@ void printBoard()
         printf("\n");
     }
 }
+
+// properties of some material
+float text_ambient[] = {1, 1, 1, 1.0};
+float text_diffuse[] = {0.75, 0.75, 0.75, 1.0};
+float text_specular[] = {1.0, 1.0, 1.0, 1.0};
+float text_shininess[] = {100.0};
 // Creates the Tetris Grid where the game will be displaying the blocks
 void drawGrid()
 {
+    // set the surface properties
+    glMaterialfv(GL_FRONT, GL_AMBIENT, text_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, text_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, text_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, text_shininess);
     // creates vertical lines
     for (int i = 0; i <= 10; i++)
     {
@@ -227,7 +238,9 @@ void init()
     glLoadIdentity();
     // Defines 2d orthographic projection viewing
     // left, right, bottom, top
+    lights_init();
     gluOrtho2D(LEFT, RIGHT, BOTTOM, TOP);
+
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 

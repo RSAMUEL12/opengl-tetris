@@ -1,14 +1,14 @@
 LIBDIRS= -framework GLUT -framework OpenGL
 LDLIBS = -lobjc -lm
 
-CPPFLAGS= -Wno-deprecated
-LDFLAGS= $(LIBDIRS)
+CPPFLAGS= 
+LDFLAGS= $(CPPFLAGS) $(LIBDIRS)
 
-TARGETS = simple double
+TARGETS = 
 
-SRCS = simple.cpp double.cpp
+SRCS = 
 
-OBJS =  $(SRCS:.cpp=.o)
+OBJS = $(SRCS:.cpp=.o)
 
 CXX = g++
 
