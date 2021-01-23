@@ -388,6 +388,17 @@ int main(int argc, char *argv[])
     glutInitWindowSize(700, 800);
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Tetris");
+
+// initialising the glew.h header file when using a Linux system
+#ifndef __APPLE__
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+        exit(1);
+    }
+    fprintf(stderr, "Using GLEW %s\n", glewGetString(GLEW_VERSION));
+#endif
     init(argc, argv);
     srand(time(0));
     glutDisplayFunc(display);
