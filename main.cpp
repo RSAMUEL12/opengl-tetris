@@ -17,6 +17,8 @@
 #include <sys/time.h>
 #include "text.cpp"
 #include "tetromino.cpp"
+#include "load_and_bind_texture.h"
+#include "create_and_compile_shaders.h"
 
 // coordinates for the window sizes
 const float LEFT = 0;
@@ -232,8 +234,24 @@ void clearLines()
     clearedLines = 0;
 }
 
-void init()
+void init(int argc, char *argv[])
 {
+    g_ceramic = load_and_bind_texture("./images/tile.png");
+    //g_bump_map = load_and_bind_texture("../images/normal.png");
+    g_bump_map = load_and_bind_texture("./images/button.png");
+
+    int max_texture_units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+    fprintf(stderr, "Max texture units is %d\n", max_texture_units);
+
+    if (argc > 2)
+    {
+        g_program_obj = create_and_compile_shaders(argv[1], NULL, argv[2]);
+
+        // get the location of the fragment shader texture variable
+        f_tex0_loc = glGetUniformLocation(g_program_obj, "f_tex0");
+        f_tex1_loc = glGetUniformLocation(g_program_obj, "f_tex1");
+    }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     // Defines 2d orthographic projection viewing
@@ -366,10 +384,10 @@ int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(700, 700);
+    glutInitWindowSize(700, 800);
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Tetris");
-    init();
+    init(argc, argv);
     srand(time(0));
     glutDisplayFunc(display);
     //glutIdleFunc(idle);
