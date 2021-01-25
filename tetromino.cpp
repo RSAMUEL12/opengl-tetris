@@ -140,7 +140,7 @@ public:
                 }
             }
         }
-        printf("\n");
+        //printf("\n");
     }
 
     bool checkLeft()
@@ -319,7 +319,7 @@ public:
             {
                 if (landedBlockLocations[row + 1][column] != 0)
                 {
-                    printf("Collision detected...\n");
+                    //printf("Collision detected...\n");
                     return true;
                 }
             }
@@ -353,6 +353,24 @@ public:
                 blocks[i].display();
             }
         }
+    }
+
+    void instantFall()
+    {
+        while (checkDown() == true and isCollision() == false)
+        {
+            // moves the blocks one space down
+            for (int i = 0; i < size; i++)
+            {
+                // Check if a boundary is hit
+                int row = blocks[i].getRow();
+                int column = blocks[i].getColumn();
+                blocks[i].setRowColumn(row + 1, column);
+                //printf("%d, %d\n", row, column);
+                blocks[i].display();
+            }
+        }
+        display();
     }
 
     void fall()

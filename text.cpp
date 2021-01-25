@@ -63,3 +63,24 @@ void draw_score(float x, float y, int score)
     }
     glPopMatrix();
 }
+
+void write_key_value(float x, float y, int score, char key[])
+{
+    char text[10];
+    sprintf(text, "%d", score);
+    size_t len = strlen(text);
+    int width = getCharacterWidth(text, len);
+    width = width * 0.3;
+
+    draw_text(x, y, key);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glTranslatef(x, y - 30, 0.0f); // this will work
+    glScalef(0.15f, 0.15f, 1.0f);  // this will work
+    for (size_t i = 0; i < len; i++)
+    {
+        glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, text[i]);
+    }
+    glPopMatrix();
+}

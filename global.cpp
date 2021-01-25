@@ -13,6 +13,10 @@
 // File to store all variables that are used by all the files in the directory
 
 float elapsedTime = 0.0f;
+const float startingSpeed = 1000;
+const float noDelaySpeed = 0;
+float fallSpeed = 1000;
+float currentSpeed = 0;
 
 #define ROWS 22
 #define VISABLE_ROWS 20
@@ -78,4 +82,16 @@ void lights_init()
     glShadeModel(GL_FLAT); // can be GL_FLAT, GL_SMOOTH
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void material_init()
+{
+    float mat_ambient[] = {1.0, 1.0, 1.0, 1.0};
+    float mat_diffuse[] = {0.6, 0.6, 0.6, 1.0};
+    float mat_specular[] = {0.8, 0.8, 0.8, 1.0};
+    float mat_shininess[] = {100.0};
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 }

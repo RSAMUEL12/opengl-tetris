@@ -31,11 +31,12 @@ const float TOP = 1000;
 bool isGameOver = false;
 bool newBlock = true;
 bool blockCreated = false;
+int gameState = 1;
 
-int level = 1;
+int level = 0;
 int clearedLines = 0;
 int totalClearedLines = 0;
-float fallSpeed = 1000;
+float tempSpeed = 0;
 
 // class to store the Player score
 class Score
@@ -60,35 +61,30 @@ public:
 
         if (clearedLines == 1)
         {
-            points = 100 * level;
+            points = 100 * (level + 1);
         }
         else if (clearedLines == 2)
         {
-            points = 300 * level;
+            points = 300 * (level + 1);
         }
         else if (clearedLines == 3)
         {
-            points = 500 * level;
+            points = 500 * (level + 1);
         }
         else
         {
-            points = 800 * level;
+            points = 800 * (level + 1);
         }
         score += points;
     }
 
     void updateLevel()
     {
-        if (clearedLines != 0)
+        if (totalClearedLines % 10 == 0)
         {
             level++;
-            fallSpeed = 1000 - (level * 50);
+            fallSpeed = fallSpeed - (level * 50);
         }
-        /*if (totalClearedLines == (level * 10))
-        {
-            level++;
-            fallSpeed = fallSpeed - (level * 100);
-        }*/
     }
 };
 
@@ -109,7 +105,7 @@ void printBoard()
         {
             printf("%d ", landedBlockLocations[i][j]);
         }
-        printf("\n");
+        //printf("\n");
     }
 }
 
@@ -202,7 +198,7 @@ void clearLines()
         if (landedBlockLocations[i][0] != 0 and landedBlockLocations[i][1] != 0 and landedBlockLocations[i][2] != 0 and landedBlockLocations[i][3] != 0 and landedBlockLocations[i][4] != 0 and landedBlockLocations[i][5] != 0 and landedBlockLocations[i][6] != 0 and landedBlockLocations[i][7] != 0 and landedBlockLocations[i][8] != 0 and landedBlockLocations[i][9] != 0)
         {
             //printBoard();
-            printf("i: %d\n", i);
+            //printf("i: %d\n", i);
             // clear the line if they are all full
             for (int g = i - 1; g > 0; g--)
             {
@@ -213,7 +209,7 @@ void clearLines()
                     blockLocations[g + 1][h] = blockLocations[g][h];
                     blockLocations[g + 1][h].setRowColumn(g + 1, h);
                 }
-                printf("row of last value: %d\n", blockLocations[i][0].getRow());
+                //printf("row of last value: %d\n", blockLocations[i][0].getRow());
             }
 
             for (int h = 0; h < COLUMNS; h++)
@@ -235,34 +231,6 @@ void clearLines()
     clearedLines = 0;
 }
 
-void init(int argc, char *argv[])
-{
-    g_ceramic = load_and_bind_texture("./images/tile.png");
-    //g_bump_map = load_and_bind_texture("../images/normal.png");
-    g_bump_map = load_and_bind_texture("./images/button.png");
-
-    int max_texture_units = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
-    fprintf(stderr, "Max texture units is %d\n", max_texture_units);
-
-    if (argc > 2)
-    {
-        g_program_obj = create_and_compile_shaders(argv[1], NULL, argv[2]);
-
-        // get the location of the fragment shader texture variable
-        f_tex0_loc = glGetUniformLocation(g_program_obj, "f_tex0");
-        f_tex1_loc = glGetUniformLocation(g_program_obj, "f_tex1");
-    }
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    // Defines 2d orthographic projection viewing
-    // left, right, bottom, top
-    lights_init();
-    gluOrtho2D(LEFT, RIGHT, BOTTOM, TOP);
-
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-}
-
 Tetromino currentTetro;
 Tetromino nextTetro(true);
 int totalTetros = 0;
@@ -270,76 +238,138 @@ int totalTetros = 0;
 // TODO: Consider adding a lock delay to last minute rotations
 void playGame()
 {
-    if (!isGameOver)
+    if (newBlock)
     {
-        if (newBlock)
-        {
-            //printBoard();
-            //printf("New Block made...\n");
-            Tetromino tetro(true);
-            currentTetro = nextTetro;
-            totalTetros++;
-            newBlock = false;
-            nextTetro = tetro;
-        }
+        //printBoard();
+        //printf("New Block made...\n");
+        Tetromino tetro(true);
+        currentTetro = nextTetro;
+        totalTetros++;
+        newBlock = false;
+        nextTetro = tetro;
+    }
 
-        draw_score(la_LEFT, tt_BOTTOM, player.getScore());
-        drawLookahead(nextTetro);
-        // display all the blocks on the grid
-        for (int i = 0; i < ROWS; i++)
+    write_key_value(la_LEFT, tt_BOTTOM, player.getScore(), "Score:");
+    write_key_value(la_LEFT, tt_TOP / 2, level, "Level:");
+    drawLookahead(nextTetro);
+    // display all the blocks on the grid
+    for (int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLUMNS; j++)
         {
-            for (int j = 0; j < COLUMNS; j++)
+            if (landedBlockLocations[i][j] != 0)
             {
-                if (landedBlockLocations[i][j] != 0)
-                {
-                    blockLocations[i][j].display();
-                }
+                blockLocations[i][j].display();
             }
         }
+    }
 
-        currentTetro.fall();
-        if (currentTetro.isBottom() or currentTetro.isCollision())
+    currentTetro.fall();
+    if (currentTetro.isBottom() or currentTetro.isCollision())
+    {
+        currentTetro.setLanded();
+        newBlock = true;
+    };
+    clearLines();
+    checkGameOver();
+    currentTetro.display();
+    blockCreated = true;
+
+    /*for (int i = 0; i < totalTetros; i++)
+    {
+        if (i == totalTetros - 1)
         {
-            currentTetro.setLanded();
-            newBlock = true;
-        };
-        clearLines();
-        checkGameOver();
-        currentTetro.display();
+            allTetros[i].fall();
+            if (allTetros[i].isBottom() or allTetros[i].isCollision())
+            {
+                allTetros[i].setLanded();
+                newBlock = true;
+            };
+        }
+        allTetros[i].display();
         blockCreated = true;
-
-        /*for (int i = 0; i < totalTetros; i++)
-        {
-            if (i == totalTetros - 1)
-            {
-                allTetros[i].fall();
-                if (allTetros[i].isBottom() or allTetros[i].isCollision())
-                {
-                    allTetros[i].setLanded();
-                    newBlock = true;
-                };
-            }
-            allTetros[i].display();
-            blockCreated = true;
-        }*/
-    }
-    else
-    {
-        draw_text(350, 350, "GAME OVER!");
-    }
+    }*/
 }
 
 // redraw callback
 void display()
 {
+    unsigned int tetris_logo = load_and_bind_texture("./images/logo.png");
     //printf("Calling Display");
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glColor3f(1, 1, 1);
-    drawGrid();
-    playGame();
+    // Check if the game is in Game Over state, and output Game Over if this is the case
+    if (gameState == 1)
+    {
+        // enable texturing
+        glEnable(GL_TEXTURE_2D);
+
+        // select which texure to render
+        glBindTexture(GL_TEXTURE_2D, tetris_logo);
+
+        // specify texture coordinates
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f); // lower left corner
+        glVertex2i(100, 450);
+        glTexCoord2f(0.0f, 1.0f); // lower right corner
+        glVertex2i(100, 750);
+        glTexCoord2f(1.0f, 1.0f); // upper right corner
+        glVertex2i(900, 750);
+        glTexCoord2f(1.0f, 0.0f); // upper left corner
+        glVertex2i(900, 450);
+        glEnd();
+
+        glDisable(GL_TEXTURE_2D);
+    }
+    else if (gameState == 2)
+    {
+        if (!isGameOver)
+        {
+            drawGrid();
+            playGame();
+        }
+        else
+        {
+            material_init();
+            draw_text(TOP / 2, RIGHT / 2, "GAME OVER!");
+            write_key_value(RIGHT / 2, TOP / 3, player.getScore(), "Final Score:");
+        }
+    }
+
     //tester();
     glutSwapBuffers(); // swap the backbuffer with the front
     //printf("Display Done...\n");
+}
+
+void init(int argc, char *argv[])
+{
+    g_ceramic = load_and_bind_texture("./images/tile.png");
+    //g_bump_map = load_and_bind_texture("../images/normal.png");
+    g_bump_map = load_and_bind_texture("./images/button.png");
+
+    /*int max_texture_units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+    fprintf(stderr, "Max texture units is %d\n", max_texture_units);*/
+
+    // initialise the normal maps for texturing the Tetris blocks
+    g_program_obj = create_and_compile_shaders("bump-light.vert", NULL, "bump-light.frag");
+
+    // get the location of the fragment shader texture variable
+    f_tex0_loc = glGetUniformLocation(g_program_obj, "f_tex0");
+    f_tex1_loc = glGetUniformLocation(g_program_obj, "f_tex1");
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    // Defines 2d orthographic projection viewing
+    // left, right, bottom, top
+    lights_init();
+    material_init();
+    gluOrtho2D(LEFT, RIGHT, BOTTOM, TOP);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+    // set the fall speed as the starting speed
+    fallSpeed = startingSpeed;
 }
 
 void timer_func(int n)
@@ -381,11 +411,25 @@ void special(int key, int, int)
     glutPostRedisplay();
 }
 
+void keyboard(unsigned char key, int, int)
+{
+    if (blockCreated)
+    {
+        switch (key)
+        {
+        case ' ':
+            currentTetro.instantFall();
+            currentTetro.display();
+            break;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(700, 800);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+    glutInitWindowSize(700, 700);
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Tetris");
 
@@ -406,7 +450,7 @@ int main(int argc, char *argv[])
     glutTimerFunc(fallSpeed, timer_func, 0);
 
     // handlers for keyboard input
-    //glutKeyboardFunc(keyboard);
+    glutKeyboardFunc(keyboard);
     glutSpecialFunc(special);
 
     glutMainLoop();
