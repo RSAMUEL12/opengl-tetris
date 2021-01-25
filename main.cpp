@@ -294,46 +294,20 @@ void playGame()
 // redraw callback
 void display()
 {
-    unsigned int tetris_logo = load_and_bind_texture("./images/logo.png");
     //printf("Calling Display");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glColor3f(1, 1, 1);
     // Check if the game is in Game Over state, and output Game Over if this is the case
-    if (gameState == 1)
+    if (!isGameOver)
     {
-        // enable texturing
-        glEnable(GL_TEXTURE_2D);
-
-        // select which texure to render
-        glBindTexture(GL_TEXTURE_2D, tetris_logo);
-
-        // specify texture coordinates
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f); // lower left corner
-        glVertex2i(100, 450);
-        glTexCoord2f(0.0f, 1.0f); // lower right corner
-        glVertex2i(100, 750);
-        glTexCoord2f(1.0f, 1.0f); // upper right corner
-        glVertex2i(900, 750);
-        glTexCoord2f(1.0f, 0.0f); // upper left corner
-        glVertex2i(900, 450);
-        glEnd();
-
-        glDisable(GL_TEXTURE_2D);
+        drawGrid();
+        playGame();
     }
-    else if (gameState == 2)
+    else
     {
-        if (!isGameOver)
-        {
-            drawGrid();
-            playGame();
-        }
-        else
-        {
-            material_init();
-            draw_text(TOP / 2, RIGHT / 2, "GAME OVER!");
-            write_key_value(RIGHT / 2, TOP / 3, player.getScore(), "Final Score:");
-        }
+        material_init();
+        draw_text(TOP / 2, RIGHT / 2, "GAME OVER!");
+        write_key_value(RIGHT / 2, TOP / 3, player.getScore(), "Final Score:");
     }
 
     //tester();
