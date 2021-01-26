@@ -190,6 +190,7 @@ public:
     // overloading display() so that a block can be drawn with specific locations // for lookahead blocks
     void display(float left, float right, float bottom, float top)
     {
+        // set the appropriate colour for the Tetromino type.
         switch (type)
         {
         case (0):

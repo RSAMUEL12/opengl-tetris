@@ -10,8 +10,9 @@
 #include <unistd.h>
 #endif
 
-// File to store all variables that are used by all the files in the directory
+// File to store all variables that are used by all the files of the Tetris project
 
+// speed modifiers for the game
 float elapsedTime = 0.0f;
 const float startingSpeed = 1000;
 const float noDelaySpeed = 0;

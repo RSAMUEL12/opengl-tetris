@@ -163,7 +163,7 @@ void checkGameOver()
 void drawLookahead(Tetromino t)
 {
     // Draw the text above the lookahead piece
-    draw_text(la_LEFT, la_TOP, "Next piece");
+    draw_text(la_LEFT, la_TOP, 15.0, "Next piece");
 
     // for each block in the shape, work out their individual left, right, top and bottom coordinates so that they can
     // be placed in the lookahead rectange space defined by la_LEFT, la_RIGHT, la_TOP and la_BOTTOM
@@ -187,6 +187,16 @@ void drawLookahead(Tetromino t)
             }
         }
     }
+}
+
+// utilises the draw_text() function from text.cpp to draw the controls relevant for playing the game
+void drawControls()
+{
+    draw_text(la_LEFT, (tt_TOP / 2) + 100, 15.0, "Controls:");
+    draw_text(la_LEFT, (tt_TOP / 2) + 50, 10, "Left: LEFTARROW");
+    draw_text(la_LEFT, (tt_TOP / 2), 10, "Right: RIGHTARROW");
+    draw_text(la_LEFT, (tt_TOP / 2) - 50, 10, "Rotate: UPARROW");
+    draw_text(la_LEFT, (tt_TOP / 2) - 100, 10, "Instant Fall: SPACEBAR");
 }
 
 // Clear any rows that are completely filled
@@ -249,8 +259,9 @@ void playGame()
         nextTetro = tetro;
     }
 
+    drawControls();
     write_key_value(la_LEFT, tt_BOTTOM, player.getScore(), "Score:");
-    write_key_value(la_LEFT, tt_TOP / 2, level, "Level:");
+    write_key_value(la_LEFT, tt_BOTTOM + 100, level, "Level:");
     drawLookahead(nextTetro);
     // display all the blocks on the grid
     for (int i = 0; i < ROWS; i++)
@@ -306,7 +317,7 @@ void display()
     else
     {
         material_init();
-        draw_text(TOP / 2, RIGHT / 2, "GAME OVER!");
+        draw_text(TOP / 2, RIGHT / 2, 30, "GAME OVER!");
         write_key_value(RIGHT / 2, TOP / 3, player.getScore(), "Final Score:");
     }
 
@@ -394,6 +405,10 @@ void keyboard(unsigned char key, int, int)
         case ' ':
             currentTetro.instantFall();
             currentTetro.display();
+            break;
+
+        case 'q':
+            exit(0);
             break;
         }
     }
