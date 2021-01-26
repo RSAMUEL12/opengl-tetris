@@ -23,8 +23,11 @@ struct Coordinate
     int column;
 };
 
+// Tetris Block Shapes
 const char shapes[] = {'I', 'J', 'L', 'O', 'S', 'Z', 'T'};
+// Stores the location of landed blocks on the Tetris grid using 0 or 1
 int landedBlockLocations[ROWS][COLUMNS] = {0};
+// Stores pointers of Blocks that have landed.
 Block blockLocations[ROWS][COLUMNS];
 
 // Tetronmino shapes that will be chosen at random
@@ -90,6 +93,7 @@ public:
         create();
         spawnShape(-2, 3);
     };
+    // creates the Tetromino by setting its Type and copies the shape of that specific type into the Object's shape array
     void create()
     {
         type = (rand() % 7);
@@ -103,6 +107,7 @@ public:
             }
         }
     }
+    // funciton used for debugging, shows the array contents of shape.
     void showShape()
     {
         for (int i = 0; i < 4; i++)
@@ -114,6 +119,7 @@ public:
             std::cout << "\n";
         }
     }
+    // spawns the shape in the hidden section of the Tetris grid: rows 1 and 2, and displays them
     void spawnShape(int row, int column)
     {
         int index = 0;
@@ -132,7 +138,6 @@ public:
                         // or, they are specified if a shape is rotated and needs to be respawned in a new location
                         Coordinate c;
                         c = performTranslation(row, column, i, j);
-                        //printf("%d, %d |", c.row, c.column);
                         Block block(c.row, c.column, type);
                         blocks[index] = block;
                         index++;
@@ -140,9 +145,9 @@ public:
                 }
             }
         }
-        printf("\n");
     }
 
+    // Checks if a block of a Tetromino has a landed Tetris block on its left side
     bool checkLeft()
     {
         for (int i = 0; i < size; i++)
@@ -173,7 +178,7 @@ public:
         int blockRow = row + i;
 
         int blockColumn = column + j;
-        //printf(" %d, %d |", blockRow, blockColumn);
+
         // columnDiff and rowDiff ensure that if the rotate block appears outside of the board,
         // it will move it onto the board by finding the distance from the outside block to the boundary
         if (blockColumn < 0 and columnDiff == 0)
@@ -197,12 +202,12 @@ public:
         newRow = blockRow + rowDiff;
         newColumn = blockColumn + columnDiff;
         Coordinate coord;
-        //printf(" %d, %d |", newRow, newColumn);
         coord.row = newRow;
         coord.column = newColumn;
         return coord;
     }
-    // function to check if the rotated shape will collide or overlap with any landed blocks
+
+    // Function to check if the rotated shape will collide or overlap with any landed blocks
     bool checkRotationCollision(int row, int column)
     {
         // loop through the shape matrix
@@ -238,6 +243,7 @@ public:
         return false;
     }
 
+    // function to check that a block has a landed block on the right of it, or a boundary, in order to halt movement to the right
     bool checkRight()
     {
         for (int i = 0; i < size; i++)
@@ -259,6 +265,7 @@ public:
         return true;
     }
 
+    // function to check that a block has a landed block below it, or a boundary, in order to halt movement to downwards
     bool checkDown()
     {
         for (int i = 0; i < size; i++)
@@ -272,6 +279,7 @@ public:
         return true;
     }
 
+    // checks if the block has hit the bottom of the Tetris grid
     bool isBottom()
     {
         for (int i = 0; i < size; i++)
@@ -295,6 +303,8 @@ public:
         return false;
     }
 
+    // if the block has hit another block below it, or has hit the boundary, then it has landed and pointers to the Blocks that
+    // have landed are stored in landedBlockLocations.
     void setLanded()
     {
         //printf("Landed...\n");
@@ -319,17 +329,14 @@ public:
             {
                 if (landedBlockLocations[row + 1][column] != 0)
                 {
-                    printf("Collision detected...\n");
                     return true;
                 }
             }
         }
         return false;
     }
-    //printf("\n");
-
-    void
-    moveLeft()
+    // when the LEFTKEY is pressed, the blocks making up the Tetromino will move to the left by 1 space
+    void moveLeft()
     {
         if (checkLeft() == true and isCollision() == false)
         {
@@ -342,6 +349,7 @@ public:
         }
     }
 
+    // when the RIGHTKEY is pressed, the blocks making up the Tetromino will move to the right by 1 space
     void moveRight()
     {
         if (checkRight() == true and isCollision() == false)
@@ -355,6 +363,26 @@ public:
         }
     }
 
+    // instantly moves the Tetromino to the bottom or the next availanle landing position below when SPACEBAR is pressed
+    void instantFall()
+    {
+        // while there is no block blocking the bottom and there is no collision
+        // the Tetromino will move to the bottom
+        while (checkDown() == true and isCollision() == false)
+        {
+            // moves the blocks one space down
+            for (int i = 0; i < size; i++)
+            {
+                // Check if a boundary is hit
+                int row = blocks[i].getRow();
+                int column = blocks[i].getColumn();
+                blocks[i].setRowColumn(row + 1, column);
+                blocks[i].display();
+            }
+        }
+    }
+
+    // Moves the block 1 space downward when a time delay of fallSpeed occurs
     void fall()
     {
         if (checkDown() == true and elapsedTime > 0 and isCollision() == false)
@@ -365,18 +393,20 @@ public:
                 int row = blocks[i].getRow();
                 int column = blocks[i].getColumn();
                 blocks[i].setRowColumn(row + 1, column);
-                //printf("%d, %d\n", row, column);
                 blocks[i].display();
             }
         }
+        // this ensures that the block only moves once during each delay, as without it the block can move multiple times
         if (elapsedTime > 0)
         {
             elapsedTime--;
         }
     }
 
+    // moves the block one space below when DOWNARROW is pressed
     void moveDownwards()
     {
+        // if there is nothing blocking the Tetromino and there is no collision then move each block of the Tetromino down
         if (checkDown() == true and isCollision() == false)
         {
             for (int i = 0; i < size; i++)
@@ -385,7 +415,6 @@ public:
                 int row = blocks[i].getRow();
                 int column = blocks[i].getColumn();
                 blocks[i].setRowColumn(row + 1, column);
-                //printf("%d, %d\n", row, column);
                 blocks[i].display();
             }
         }
@@ -395,6 +424,8 @@ public:
         }
     }
 
+    // rotates the shape matrix 90 degrees to the right and saves it as the new shape unless there is no space
+    // for the block to be rotated
     void rotateRight()
     {
         int n = 4;
